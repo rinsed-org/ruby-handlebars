@@ -1,5 +1,7 @@
 module Handlebars
   module Tree
+    class MissingAttribute < StandardError; end
+
     class TreeItem < Struct
       def eval(context)
         _eval(context)
@@ -14,11 +16,16 @@ module Handlebars
 
     class Replacement < TreeItem.new(:item)
       def _eval(context)
-        if context.get_helper(item.to_s).nil?
-          context.get(item.to_s)
-        else
-          context.get_helper(item.to_s).apply(context)
-        end
+        attribute = item.to_s
+
+        result = if context.get_helper(attribute).nil?
+                   context.get(attribute)
+                 else
+                   context.get_helper(attribute).apply(context)
+                 end
+
+        raise MissingAttribute, "Attribute '#{attribute}' is missing from context" unless result
+        result
       end
     end
 
@@ -80,7 +87,7 @@ module Handlebars
 
     class PartialWithArgs < TreeItem.new(:partial_name, :arguments)
       def _eval(context)
-        [arguments].flatten.map(&:values).map do |vals| 
+        [arguments].flatten.map(&:values).map do |vals|
           context.add_item vals.first.to_s, vals.last._eval(context)
         end
         context.get_partial(partial_name.to_s).call
@@ -171,7 +178,7 @@ module Handlebars
     ) {
       Tree::AsHelper.new(name, parameters, as_parameters, block_items, else_block_items)
     }
-    
+
     rule(
       partial_name: simple(:partial_name),
       arguments: subtree(:arguments)
