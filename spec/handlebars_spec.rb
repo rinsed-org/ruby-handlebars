@@ -24,7 +24,11 @@ describe Handlebars::Handlebars do
     end
 
     it 'a double braces replacement with nil' do
-      expect(evaluate('Hello {{name}}', {name: nil})).to eq('Hello ')
+      expect { evaluate('Hello {{name}}', {name: nil}) }.to raise_error(Handlebars::Tree::MissingAttribute)
+    end
+
+    it 'a double braces replacement with missing data' do
+      expect { evaluate('Hello {{first_name}}', {last_name: 'world'}) }.to raise_error(Handlebars::Tree::MissingAttribute)
     end
 
     it 'a triple braces replacement with unsafe characters' do
@@ -71,7 +75,7 @@ describe Handlebars::Handlebars do
         hbs.register_partial('brackets', "[{{name}}]")
         expect(evaluate("Hello {{> brackets}}", {name: 'world'})).to eq("Hello [world]")
       end
-      
+
       it 'with a string argument' do
         hbs.register_partial('with_args', "[{{name}}]")
         expect(evaluate("Hello {{> with_args name='jon'}}")).to eq("Hello [jon]")
